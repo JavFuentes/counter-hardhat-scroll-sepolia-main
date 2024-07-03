@@ -4,15 +4,14 @@
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Counter Dapp</title>
+    <title>Scroll Counter Dapp</title>
 </head>
 <body>
     <div>
-      <label for="counter">Counter</label>
-      <input disabled type="text" id="counter" />
-      <button onclick="increment()" type="button">Increment</button>
-      <button onclick="getCounter()" type="button">Get Counter</button>
-
+        <label for="counter">Counter</label>
+        <input disabled type="text" id="counter" />
+        <button onclick="increment()" type="button">Increment</button>
+        <button onclick="getCounter()" type="button">Get Counter</button>
     </div>
 
     <script type="module">
@@ -55,35 +54,43 @@
         let signer;
         let contract;
 
-        const provider =  new ethers.providers.Web3Provider(
-          window.ethereum,
-          "any"
-        );
-
-        provider.send('eth_requestAccounts', []).then(() =>{
-          provider.listAccounts().then(accounts => {
-            signer = provider.setSigner(accounts[0]);
-            contract = new ethers.Contract(
-              CONTRACT_ADDRESS,
-              CONTRACT_ABI,
-              signer
-            );
-          });
-        });
-
-        async function increment(){
-          await contract.increment();
+        async function init() {
+            if (typeof window.ethereum !== 'undefined') {
+                try {
+                    const provider = new ethers.BrowserProvider(window.ethereum);
+                    await provider.send('eth_requestAccounts', []);
+                    signer = await provider.getSigner(); // Asegurarse de usar await aquí
+                    contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+                    console.log('MetaMask está conectado.');
+                } catch (error) {
+                    console.error('Error al conectar con MetaMask:', error);
+                }
+            } else {
+                console.error('MetaMask no está instalado. Por favor, instálalo para usar esta Dapp.');
+            }
         }
 
-        async function getCounter() {
-          const counter = await contract.getCounter();
-
-          document.getElementById("counter").value = counter.toString()
-          console.log(counter.toString())
+        window.increment = async function increment() {
+            try {
+                const tx = await contract.increment();
+                await tx.wait();
+                console.log('Contador incrementado.');
+            } catch (error) {
+                console.error('Error al incrementar el contador:', error);
+            }
         }
 
-      </script>
+        window.getCounter = async function getCounter() {
+            try {
+                const counter = await contract.getCounter();
+                document.getElementById("counter").value = counter.toString();
+                console.log(counter.toString());
+            } catch (error) {
+                console.error('Error al obtener el contador:', error);
+            }
+        }
+
+        window.addEventListener('load', init);
+    </script>
 </body>
 </html>
-
-//probar con sepolia
